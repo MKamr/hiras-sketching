@@ -100,6 +100,65 @@ export default function BookStack({ pages, className = '', children }: BookStack
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [goToNext, goToPrev]);
 
+  // Touch/swipe support for mobile
+  useEffect(() => {
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchEndX = 0;
+    let touchEndY = 0;
+    const minSwipeDistance = 50; // Minimum distance in pixels to trigger a swipe
+
+    const onTouchStart = (e: TouchEvent) => {
+      const touch = e.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+    };
+
+    const onTouchMove = (e: TouchEvent) => {
+      // Prevent scrolling while swiping
+      e.preventDefault();
+    };
+
+    const onTouchEnd = (e: TouchEvent) => {
+      const touch = e.changedTouches[0];
+      touchEndX = touch.clientX;
+      touchEndY = touch.clientY;
+
+      const deltaX = touchEndX - touchStartX;
+      const deltaY = touchEndY - touchStartY;
+      const absDeltaX = Math.abs(deltaX);
+      const absDeltaY = Math.abs(deltaY);
+
+      // Determine if it's a horizontal or vertical swipe
+      if (absDeltaX > absDeltaY && absDeltaX > minSwipeDistance) {
+        // Horizontal swipe: left = next page, right = previous page
+        if (deltaX < 0) {
+          goToNext();
+        } else {
+          goToPrev();
+        }
+      } else if (absDeltaY > absDeltaX && absDeltaY > minSwipeDistance) {
+        // Vertical swipe: down = next page, up = previous page
+        if (deltaY > 0) {
+          goToNext();
+        } else {
+          goToPrev();
+        }
+      }
+    };
+
+    const container = document.body;
+    container.addEventListener('touchstart', onTouchStart, { passive: true });
+    container.addEventListener('touchmove', onTouchMove, { passive: false });
+    container.addEventListener('touchend', onTouchEnd, { passive: true });
+
+    return () => {
+      container.removeEventListener('touchstart', onTouchStart);
+      container.removeEventListener('touchmove', onTouchMove);
+      container.removeEventListener('touchend', onTouchEnd);
+    };
+  }, [goToNext, goToPrev]);
+
   return (
     <BookNavigationProvider
       currentIndex={currentIndex}
